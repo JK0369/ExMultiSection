@@ -29,8 +29,21 @@ class ViewController: UIViewController {
     
     self.tableView.dataSource = self
     
-    API.getPhotos { photo in
-      print(photo.map { $0.description })
+    // 할 것
+    // 2. Section이 여러개인 경우, append 방법
+    // 3. "더 보기" 셀 처리
+    API.getPhotos { [weak self] photos in
+      guard let ss = self else { return }
+      let photoDataSource = photos.filter { $0.description == nil }
+      let descriptionDataSource = photos.filter { $0.description != nil }
+      ss.dataSource.append(
+        contentsOf: [
+          .image(photoDataSource),
+          .description(descriptionDataSource),
+          .loading
+        ]
+      )
+      
     }
   }
 }
