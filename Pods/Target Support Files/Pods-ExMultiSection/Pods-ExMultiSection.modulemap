@@ -1,0 +1,6 @@
+framework module Pods_ExMultiSection {
+  umbrella header "Pods-ExMultiSection-umbrella.h"
+
+  export *
+  module * { export * }
+}
