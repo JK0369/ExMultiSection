@@ -32,6 +32,10 @@ class ViewController: UIViewController {
     // 할 것
     // 2. Section이 여러개인 경우, append 방법
     // 3. "더 보기" 셀 처리
+    
+    // 아래 사이트보고 맨 밑 section 어떻게 처리하는지 확인
+//  https://www.apollographql.com/docs/ios/tutorial/tutorial-pagination/
+    
     API.getPhotos { [weak self] photos in
       guard let ss = self else { return }
       let photoDataSource = photos.filter { $0.description == nil }
