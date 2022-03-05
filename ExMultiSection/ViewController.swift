@@ -14,32 +14,38 @@ class ViewController: UIViewController {
     $0.register(PhotoCell.self, forCellReuseIdentifier: "PhotoCell")
     $0.register(TitleCell.self, forCellReuseIdentifier: "TitleCell")
     $0.register(LoadingCell.self, forCellReuseIdentifier: "LoadingCell")
+    $0.rowHeight = UITableView.automaticDimension
+    $0.estimatedRowHeight = 1000
+    $0.tableFooterView = UIView()
+    $0.separatorStyle = .none
   }
   
   private var dataSource = [PhotoSection]()
+  private var isRefreshing = false
+  private var page = 0
   
   override func viewDidLoad() {
     super.viewDidLoad()
-    // photoDescription이 nil이면 photo section으로,
-    // nil이 아니면 dscription section으로
     self.view.addSubview(self.tableView)
     self.tableView.snp.makeConstraints {
       $0.edges.equalToSuperview()
     }
     
     self.tableView.dataSource = self
-    
-    // 할 것
-    // 2. Section이 여러개인 경우, append 방법
-    // 3. "더 보기" 셀 처리
-    
-    // 아래 사이트보고 맨 밑 section 어떻게 처리하는지 확인
-//  https://www.apollographql.com/docs/ios/tutorial/tutorial-pagination/
-    
-    API.getPhotos { [weak self] photos in
+    self.tableView.delegate = self
+    self.refresh()
+  }
+  private func refresh() {
+    self.isRefreshing = true
+    self.page += 1
+    API.getPhotos(page: self.page) { [weak self] photos in
       guard let ss = self else { return }
+      ss.isRefreshing = false
       let photoDataSource = photos.filter { $0.description == nil }
       let descriptionDataSource = photos.filter { $0.description != nil }
+      if !ss.dataSource.isEmpty {
+        ss.dataSource.remove(at: ss.dataSource.count - 1)
+      }
       ss.dataSource.append(
         contentsOf: [
           .image(photoDataSource),
@@ -47,7 +53,10 @@ class ViewController: UIViewController {
           .loading
         ]
       )
-      
+      ss.tableView.reloadData()
+      DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+        ss.tableView.reloadData()
+      }
     }
   }
 }
@@ -63,7 +72,7 @@ extension ViewController: UITableViewDataSource {
     case let .description(photos):
       return photos.count
     case .loading:
-      return 0
+      return 1
     }
   }
   func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -78,8 +87,16 @@ extension ViewController: UITableViewDataSource {
       return cell
     case .loading:
       let cell = tableView.dequeueReusableCell(withIdentifier: "LoadingCell", for: indexPath) as! LoadingCell
-      cell.prepare(mode: .loading)
+      cell.prepare(mode: self.isRefreshing ? .refreshing : .more)
       return cell
     }
+  }
+}
+
+extension ViewController: UITableViewDelegate {
+  func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    tableView.deselectRow(at: indexPath, animated: false)
+    guard case .loading = self.dataSource[indexPath.section] else { return }
+    self.refresh()
   }
 }
