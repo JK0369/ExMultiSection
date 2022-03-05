@@ -9,26 +9,22 @@ import UIKit
 import SnapKit
 import Then
 import Kingfisher
+import RxSwift
+import RxCocoa
 
 final class PhotoCell: UITableViewCell {
   private let photoImageView = UIImageView().then {
     $0.layer.masksToBounds = true
   }
   
-  private var heightConstraint: Constraint?
-  var cellHeight = nil as CGFloat? {
-    didSet {
-      self.heightConstraint?.update(offset: self.cellHeight ?? 0)
-      self.layoutIfNeeded()
-    }
-  }
+  let updateImagesSubejct = PublishSubject<Void>()
+  var disposeBag = DisposeBag()
   
   override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
     super.init(style: style, reuseIdentifier: reuseIdentifier)
     self.contentView.addSubview(self.photoImageView)
     self.photoImageView.snp.makeConstraints {
       $0.edges.equalToSuperview()
-      self.heightConstraint = $0.height.equalTo(0).priority(999).constraint
     }
   }
   required init?(coder: NSCoder) {
@@ -37,8 +33,8 @@ final class PhotoCell: UITableViewCell {
   
   override func prepareForReuse() {
     super.prepareForReuse()
+    self.disposeBag = DisposeBag()
     self.prepare(urlString: nil)
-    self.cellHeight = nil
   }
   func prepare(urlString: String?) {
     self.photoImageView.kf.cancelDownloadTask()
@@ -53,14 +49,7 @@ final class PhotoCell: UITableViewCell {
         .progressiveJPEG(ImageProgressive(isBlur: false, isFastestScan: true, scanInterval: 0.1)),
         .transition(.fade(0.3))
       ],
-      completionHandler: { [weak self] result in
-        switch result {
-        case .success(let response):
-          self?.cellHeight = response.image.size.height
-        case .failure:
-          break
-        }
-      }
+      completionHandler: { [weak self] _ in self?.updateImagesSubejct.onNext(()) }
     )
   }
 }

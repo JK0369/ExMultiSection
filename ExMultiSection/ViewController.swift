@@ -54,9 +54,6 @@ class ViewController: UIViewController {
         ]
       )
       ss.tableView.reloadData()
-      DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-        ss.tableView.reloadData()
-      }
     }
   }
 }
@@ -80,6 +77,12 @@ extension ViewController: UITableViewDataSource {
     case .image(let photos):
       let cell = tableView.dequeueReusableCell(withIdentifier: "PhotoCell", for: indexPath) as! PhotoCell
       cell.prepare(urlString: photos[indexPath.row].url)
+      cell.updateImagesSubejct
+        .bind {
+          tableView.beginUpdates()
+          tableView.endUpdates()
+        }
+        .disposed(by: cell.disposeBag)
       return cell
     case .description(let photos):
       let cell = tableView.dequeueReusableCell(withIdentifier: "TitleCell", for: indexPath) as! TitleCell
